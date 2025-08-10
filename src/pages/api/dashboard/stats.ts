@@ -65,9 +65,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Agent performance stats
     const agentStats = {
-      market_research: agentLogs.filter(log => log.agentName === 'market_research'),
-      content_creation: agentLogs.filter(log => log.agentName === 'content_creation'),
-      platform_management: agentLogs.filter(log => log.agentName === 'platform_management')
+      market_research: agentLogs.filter((log: any) => log.agentName === 'market_research'),
+      content_creation: agentLogs.filter((log: any) => log.agentName === 'content_creation'),
+      platform_management: agentLogs.filter((log: any) => log.agentName === 'platform_management')
     }
 
     const stats = {
@@ -83,11 +83,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       agents: {
         total: Object.keys(agentStats).length,
-        active: Object.values(agentStats).filter(logs => 
-          logs.some(log => log.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000))
+        active: Object.values(agentStats).filter((logs: any[]) => 
+          logs.some((log: any) => log.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000))
         ).length,
         successRate: agentLogs.length > 0 
-          ? (agentLogs.filter(log => log.status === 'completed').length / agentLogs.length * 100)
+          ? (agentLogs.filter((log: any) => log.status === 'completed').length / agentLogs.length * 100)
           : 0
       },
       recentProducts,

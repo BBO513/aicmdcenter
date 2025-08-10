@@ -30,9 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         include: {
           revenues: true
         }
-      }).then(products => 
-        products.reduce((total, product) => 
-          total + product.revenues.reduce((sum, rev) => sum + rev.amount, 0), 0)
+      }).then((products: any[]) => 
+        products.reduce((total: number, product: any) => 
+          total + product.revenues.reduce((sum: number, rev: any) => sum + rev.amount, 0), 0)
       ),
       prisma.product.findMany({
         where: { 
@@ -40,9 +40,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
         },
         include: { revenues: true }
-      }).then(products => 
-        products.reduce((total, product) => 
-          total + product.revenues.reduce((sum, rev) => sum + rev.amount, 0), 0)
+      }).then((products: any[]) => 
+        products.reduce((total: number, product: any) => 
+          total + product.revenues.reduce((sum: number, rev: any) => sum + rev.amount, 0), 0)
       ),
       prisma.agentLog.findMany({
         where: {

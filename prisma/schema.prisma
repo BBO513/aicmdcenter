@@ -1,0 +1,102 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/aicmdcenter-deploy/app/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  products  Product[]
+  sessions  Session[]
+  accounts  Account[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String
+  price       Float
+  status      String   @default("draft") // draft, published, archived
+  platforms   String[] // etsy, gumroad, creative_market
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentLogs   AgentLog[]
+  revenues    Revenue[]
+}
+
+model AgentLog {
+  id        String   @id @default(cuid())
+  agentName String   // market_research, content_creation, platform_management
+  action    String
+  status    String   // running, completed, failed
+  data      Json?
+  createdAt DateTime @default(now())
+  productId String?
+  
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Revenue {
+  id        String   @id @default(cuid())
+  amount    Float
+  platform  String   // etsy, gumroad, creative_market
+  date      DateTime @default(now())
+  productId String
+  
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model SystemMetrics {
+  id                String   @id @default(cuid())
+  totalProducts     Int      @default(0)
+  totalRevenue      Float    @default(0)
+  activeAgents      Int      @default(0)
+  successfulTasks   Int      @default(0)
+  failedTasks       Int      @default(0)
+  updatedAt         DateTime @updatedAt @default(now())
+}

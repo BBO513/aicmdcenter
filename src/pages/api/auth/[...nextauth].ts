@@ -1,14 +1,8 @@
 
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
 
 export default NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -19,25 +13,11 @@ export default NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // For MVP, create user if doesn't exist (auto-registration)
-        let user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        })
-
-        if (!user) {
-          const hashedPassword = await bcrypt.hash(credentials.password, 12)
-          user = await prisma.user.create({
-            data: {
-              email: credentials.email,
-              name: credentials.email.split('@')[0],
-            }
-          })
-        }
-
+        // For MVP demo - accept any email/password combination
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
+          id: credentials.email,
+          email: credentials.email,
+          name: credentials.email.split('@')[0],
         }
       }
     })
@@ -48,12 +28,18 @@ export default NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id
+      if (user) {
+        token.id = user.id
+        token.email = user.email
+        token.name = user.name
+      }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string
+        session.user.email = token.email as string
+        session.user.name = token.name as string
       }
       return session
     }

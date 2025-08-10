@@ -1,9 +1,6 @@
 
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -12,86 +9,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const userId = session.user.id
-
-    // Get dashboard statistics
-    const [
-      totalProducts,
-      publishedProducts,
-      totalRevenue,
-      recentRevenue,
-      agentLogs,
-      recentProducts
-    ] = await Promise.all([
-      prisma.product.count({ where: { userId } }),
-      prisma.product.count({ where: { userId, status: 'published' } }),
-      prisma.product.findMany({
-        where: { userId },
-        include: {
-          revenues: true
-        }
-      }).then((products: any[]) => 
-        products.reduce((total: number, product: any) => 
-          total + product.revenues.reduce((sum: number, rev: any) => sum + rev.amount, 0), 0)
-      ),
-      prisma.product.findMany({
-        where: { 
-          userId,
-          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-        },
-        include: { revenues: true }
-      }).then((products: any[]) => 
-        products.reduce((total: number, product: any) => 
-          total + product.revenues.reduce((sum: number, rev: any) => sum + rev.amount, 0), 0)
-      ),
-      prisma.agentLog.findMany({
-        where: {
-          product: { userId }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        include: { product: true }
-      }),
-      prisma.product.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        include: {
-          revenues: true,
-          agentLogs: { take: 1, orderBy: { createdAt: 'desc' } }
-        }
-      })
-    ])
-
-    // Agent performance stats
-    const agentStats = {
-      market_research: agentLogs.filter((log: any) => log.agentName === 'market_research'),
-      content_creation: agentLogs.filter((log: any) => log.agentName === 'content_creation'),
-      platform_management: agentLogs.filter((log: any) => log.agentName === 'platform_management')
-    }
-
+    // Return demo data for MVP
     const stats = {
       products: {
-        total: totalProducts,
-        published: publishedProducts,
-        draft: totalProducts - publishedProducts
+        total: 12,
+        published: 8,
+        draft: 4
       },
       revenue: {
-        total: totalRevenue,
-        thisMonth: recentRevenue,
-        growth: recentRevenue > 0 ? ((recentRevenue / (totalRevenue || 1)) * 100) : 0
+        total: 2450.00,
+        thisMonth: 890.00,
+        growth: 15.2
       },
       agents: {
-        total: Object.keys(agentStats).length,
-        active: Object.values(agentStats).filter((logs: any[]) => 
-          logs.some((log: any) => log.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000))
-        ).length,
-        successRate: agentLogs.length > 0 
-          ? (agentLogs.filter((log: any) => log.status === 'completed').length / agentLogs.length * 100)
-          : 0
+        total: 3,
+        active: 2,
+        successRate: 87.5
       },
-      recentProducts,
-      recentLogs: agentLogs.slice(0, 5)
+      recentProducts: [
+        {
+          id: '1',
+          title: 'Digital Art Collection',
+          status: 'published',
+          createdAt: new Date(),
+          revenues: [{ amount: 150 }],
+          agentLogs: [{ status: 'completed', createdAt: new Date() }]
+        },
+        {
+          id: '2', 
+          title: 'Photography Bundle',
+          status: 'draft',
+          createdAt: new Date(),
+          revenues: [{ amount: 0 }],
+          agentLogs: [{ status: 'running', createdAt: new Date() }]
+        }
+      ],
+      recentLogs: [
+        {
+          id: '1',
+          agentName: 'market_research',
+          status: 'completed',
+          createdAt: new Date(),
+          product: { title: 'Digital Art Collection' }
+        },
+        {
+          id: '2',
+          agentName: 'content_creation', 
+          status: 'running',
+          createdAt: new Date(),
+          product: { title: 'Photography Bundle' }
+        }
+      ]
     }
 
     res.status(200).json(stats)
